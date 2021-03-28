@@ -1,6 +1,11 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
+
 const app = express()
+
+app.use(cors())
+app.use(express.static('frontend/build'))
 app.use(express.json())
 app.use(morgan((tokens, req, res) => {
     let fields = [
@@ -50,7 +55,7 @@ app.get('/api/persons/:id', (req, res) => {
     const person = persons.find(person => person.id === id)
     if (!person) {
         res.status(404)
-        res.json({status: "error", reason: "not found"})
+        res.json({reason: "not found"})
         return
     }
     res.json(person)
@@ -61,7 +66,7 @@ app.delete('/api/persons/:id', (req, res) => {
     const person = persons.find(person => person.id === id)
     if (!person) {
         res.status(404)
-        res.json({status: "error", reason: "not found"})
+        res.json({reason: "not found"})
         return
     }
     persons = persons.filter(person => person.id !== id)
@@ -72,19 +77,19 @@ app.post('/api/persons', (req, res) => {
     const name = req.body.name
     if (!name) {
         res.status(400)
-        res.json({status: "error", reason: "name missing"})
+        res.json({reason: "name missing"})
         return
     }
     const number = req.body.number
     if (!number) {
         res.status(400)
-        res.json({status: "error", reason: "number missing"})
+        res.json({reason: "number missing"})
         return
     }
 
     if (persons.find(person => person.name === name)) {
         res.status(400)
-        res.json({status: "error", reason: "already exists"})
+        res.json({reason: "already exists"})
         return
     }
 
@@ -95,7 +100,7 @@ app.post('/api/persons', (req, res) => {
         id: Math.floor(Math.random() * MAX_ID)
     }
     persons = persons.concat(newPerson)
-    res.json({status: "ok", id: newPerson.id})
+    res.json(newPerson)
 })
 
 app.get('/info', (req, res) => {
