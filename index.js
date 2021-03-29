@@ -1,6 +1,7 @@
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
+const mongoose = require('mongoose')
 
 const app = express()
 
@@ -22,91 +23,120 @@ app.use(morgan((tokens, req, res) => {
   }
 
 ))
+const errorHandler = (error, request, response, next) => {    
+    console.error(error.name, error.message)
 
-let persons = [
-    { 
-        "name": "Arto Hellas", 
-        "number": "040-123456",
-        "id": 1
-    },
-    { 
-        "name": "Ada Lovelace", 
-        "number": "39-44-5323523",
-        "id": 2
-    },
-    { 
-        "name": "Dan Abramov", 
-        "number": "12-43-234345",
-        "id": 3
-    },
-    { 
-        "name": "Mary Poppendieck", 
-        "number": "39-23-6423122",
-        "id": 4
+    if (error.name === 'CastError') {
+        return response.status(400).send({ reason: 'malformatted id' })
     }
-]
 
-app.get('/api/persons', (req, res) => {
-    res.json(persons)
+    next(error)
+}
+  
+
+const db = require('./services/mongo')
+
+app.get('/api/persons', (req, res, next) => {
+    db.getAllPersons()
+        .then((persons) => {
+            res.json(persons).end()
+        })
+        .catch(error => next(error))
 })
 
-app.get('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
-    if (!person) {
-        res.status(404)
-        res.json({reason: "not found"})
-        return
-    }
-    res.json(person)
+app.get('/api/persons/:id', (req, res, next) => {
+    db.getPersonById(req.params.id)
+        .then((person) => {
+            if(person)
+                res
+                    .json(person)
+                    .end()
+            else {
+                res
+                    .status(404)
+                    .json({reason: 'not found'})
+                    .end()
+            }
+        })
+        .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => person.id === id)
-    if (!person) {
-        res.status(404)
-        res.json({reason: "not found"})
-        return
-    }
-    persons = persons.filter(person => person.id !== id)
-    res.json({status: "ok"})
+app.delete('/api/persons/:id', (req, res, next) => {
+    db.deletePerson(req.params.id)
+        .then(() => {
+            res
+                .status(204)
+                .end()
+        })    
+        .catch(error => next(error))
 })
 
-app.post('/api/persons', (req, res) => {
+app.get('/info', (req, res, next) => {
+    db.getAllPersons()
+    .then((persons) => {
+        res
+            .send(`Phonebook has info for ${persons.length} people`)
+            .end()
+    })    
+    .catch(error => next(error))
+})
+
+app.post('/api/persons', (req, res, next) => {
     const name = req.body.name
     if (!name) {
-        res.status(400)
-        res.json({reason: "name missing"})
+        res
+            .status(400)
+            .json({reason: "name missing"})
+            .end()
         return
     }
     const number = req.body.number
     if (!number) {
-        res.status(400)
-        res.json({reason: "number missing"})
+        res
+            .status(400)
+            .json({reason: "number missing"})
+            .end()
         return
     }
 
-    if (persons.find(person => person.name === name)) {
-        res.status(400)
-        res.json({reason: "already exists"})
+    db.addNewPerson(name, number)
+        .then(response => {
+            res
+                .json(response)
+                .end()
+        })    
+        .catch(error => next(error))
+})
+ 
+app.put('/api/persons/:id', (req, res, next) => {
+    const name = req.body.name
+    if (!name) {
+        res
+            .status(400)
+            .json({reason: "name missing"})
+            .end()
+        return
+    }
+    const number = req.body.number
+    if (!number) {
+        res
+            .status(400)
+            .json({reason: "number missing"})
+            .end()
         return
     }
 
-    const MAX_ID = 2**32
-    const newPerson = {
-        name,
-        number,
-        id: Math.floor(Math.random() * MAX_ID)
-    }
-    persons = persons.concat(newPerson)
-    res.json(newPerson)
+    db.updatePerson(req.params.id, name, number)
+        .then(response => {
+            res
+                .json(response)
+                .end()
+        })    
+        .catch(error => next(error))
 })
+ 
 
-app.get('/info', (req, res) => {
-    res.send(`Phonebook has info for ${persons.length} people`)
-})
-  
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
