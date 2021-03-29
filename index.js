@@ -1,7 +1,6 @@
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
-const mongoose = require('mongoose')
 
 const app = express()
 
@@ -10,20 +9,19 @@ app.use(express.static('frontend/build'))
 app.use(express.json())
 app.use(morgan((tokens, req, res) => {
     let fields = [
-      tokens.method(req, res),
-      tokens.url(req, res),
-      tokens.status(req, res),
-      tokens.res(req, res, 'content-length'), '-',
-      tokens['response-time'](req, res), 'ms'
+        tokens.method(req, res),
+        tokens.url(req, res),
+        tokens.status(req, res),
+        tokens.res(req, res, 'content-length'), '-',
+        tokens['response-time'](req, res), 'ms'
     ]
-    if (tokens.method(req, res) == 'POST') {
+    if (tokens.method(req, res) === 'POST') {
         fields = fields.concat(JSON.stringify(req.body))
     }
     return fields.join(' ')
-  }
+}))
 
-))
-const errorHandler = (error, request, response, next) => {    
+const errorHandler = (error, request, response, next) => {
     console.error(error.name, error.message)
 
     if (error.name === 'CastError') {
@@ -34,7 +32,6 @@ const errorHandler = (error, request, response, next) => {
     }
     next(error)
 }
-  
 
 const db = require('./services/mongo')
 
@@ -56,7 +53,7 @@ app.get('/api/persons/:id', (req, res, next) => {
             else {
                 res
                     .status(404)
-                    .json({reason: 'not found'})
+                    .json({ reason: 'not found' })
                     .end()
             }
         })
@@ -69,18 +66,16 @@ app.delete('/api/persons/:id', (req, res, next) => {
             res
                 .status(204)
                 .end()
-        })    
+        })
         .catch(error => next(error))
 })
 
 app.get('/info', (req, res, next) => {
-    db.getAllPersons()
-    .then((persons) => {
+    db.getAllPersons().then((persons) => {
         res
             .send(`Phonebook has info for ${persons.length} people`)
             .end()
-    })    
-    .catch(error => next(error))
+    }).catch(error => next(error))
 })
 
 app.post('/api/persons', (req, res, next) => {
@@ -88,7 +83,7 @@ app.post('/api/persons', (req, res, next) => {
     if (!name) {
         res
             .status(400)
-            .json({reason: "name missing"})
+            .json({ reason: 'name missing' })
             .end()
         return
     }
@@ -96,7 +91,7 @@ app.post('/api/persons', (req, res, next) => {
     if (!number) {
         res
             .status(400)
-            .json({reason: "number missing"})
+            .json({ reason: 'number missing' })
             .end()
         return
     }
@@ -106,16 +101,16 @@ app.post('/api/persons', (req, res, next) => {
             res
                 .json(response)
                 .end()
-        })    
+        })
         .catch(error => next(error))
 })
- 
+
 app.put('/api/persons/:id', (req, res, next) => {
     const name = req.body.name
     if (!name) {
         res
             .status(400)
-            .json({reason: "name missing"})
+            .json({ reason: 'name missing' })
             .end()
         return
     }
@@ -123,7 +118,7 @@ app.put('/api/persons/:id', (req, res, next) => {
     if (!number) {
         res
             .status(400)
-            .json({reason: "number missing"})
+            .json({ reason: 'number missing' })
             .end()
         return
     }
@@ -133,10 +128,9 @@ app.put('/api/persons/:id', (req, res, next) => {
             res
                 .json(response)
                 .end()
-        })    
+        })
         .catch(error => next(error))
 })
- 
 
 app.use(errorHandler)
 

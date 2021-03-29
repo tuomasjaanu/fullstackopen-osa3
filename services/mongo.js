@@ -1,19 +1,19 @@
 const mongoose = require('mongoose')
-const uniqueValidator = require('mongoose-unique-validator');
+const uniqueValidator = require('mongoose-unique-validator')
 
 const password = process.env.MONGO_PASSWORD
 const url =
   `mongodb+srv://tuomasjaanu:${password}@cluster0.dbkdb.mongodb.net/puhelinluettelo?retryWrites=true&w=majority`
 
 mongoose.connect(
-    url, { 
-        useNewUrlParser: true, 
-        useUnifiedTopology: true, 
-        useFindAndModify: false, 
-        useCreateIndex: true 
+    url, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        useFindAndModify: false,
+        useCreateIndex: true
     })
-    .catch(error => {
-        console.error("Unable to connect to mongoose!")
+    .catch( error => {
+        console.error(`Unable to connect to mongoose: ${error}`)
     })
 
 const length_validator = (minimum_length) => {
@@ -21,32 +21,33 @@ const length_validator = (minimum_length) => {
 }
 
 const personSchema = new mongoose.Schema({
-    name: { 
-        type: String, 
-        required: true, 
-        unique: true, 
-        validate: [length_validator(3), 'too short']  
-    },
-    number: { 
-        type: String, 
+    name: {
+        type: String,
         required: true,
-        validate: [length_validator(8), 'too short'] 
+        unique: true,
+        validate: [length_validator(3), 'too short']
+    },
+    number: {
+        type: String,
+        required: true,
+        validate: [length_validator(8), 'too short']
     }
 })
+
 personSchema.plugin(uniqueValidator)
 
 const Person = mongoose.model('Person', personSchema)
 
 const getAllPersons = () => {
-    return Person.find({}).then(result => {    
-        let persons = []    
+    return Person.find({}).then(result => {
+        let persons = []
         result.forEach(person => {
             persons.push({
                 name: person.name,
                 number: person.number,
                 id: person._id
-            })          
-        })        
+            })
+        })
         return persons
     })
 }
@@ -61,16 +62,10 @@ const deletePerson = (id) => {
 
 const updatePerson = (id, name, number) => {
     return Person.findByIdAndUpdate(
-        id, 
-        { name, number }, 
+        id,
+        { name, number },
         { new: true, runValidators: true, context: 'query' }
-        ).then(result => {
-            return {
-                id,
-                name,
-                number
-            }
-        })
+    )
 }
 
 const addNewPerson = (name, number) => {
@@ -78,7 +73,7 @@ const addNewPerson = (name, number) => {
         name,
         number
     })
-    
+
     return person.save().then(person => {
         return {
             name: person.name,
