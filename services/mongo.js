@@ -16,9 +16,22 @@ mongoose.connect(
         console.error("Unable to connect to mongoose!")
     })
 
+const length_validator = (minimum_length) => {
+    return (field) => field.length >= minimum_length
+}
+
 const personSchema = new mongoose.Schema({
-  name: { type: String, required: true, unique: true },
-  number: { type: String, required: true }
+    name: { 
+        type: String, 
+        required: true, 
+        unique: true, 
+        validate: [length_validator(3), 'too short']  
+    },
+    number: { 
+        type: String, 
+        required: true,
+        validate: [length_validator(8), 'too short'] 
+    }
 })
 personSchema.plugin(uniqueValidator)
 
@@ -39,20 +52,7 @@ const getAllPersons = () => {
 }
 
 const getPersonById = (id) => {
-    return Person.findById(id).then(result => {    
-        let persons = []    
-        result.forEach(person => {
-            persons.push({
-                name: person.name,
-                number: person.number,
-                id: person._id
-            })          
-        })        
-        if (persons.length === 0) {
-            return null;
-        }
-        return persons[0]
-    })
+    return Person.findById(id)
 }
 
 const deletePerson = (id) => {
@@ -60,7 +60,17 @@ const deletePerson = (id) => {
 }
 
 const updatePerson = (id, name, number) => {
-    return Person.findByIdAndUpdate(id, { name, number }, { new: true })
+    return Person.findByIdAndUpdate(
+        id, 
+        { name, number }, 
+        { new: true, runValidators: true, context: 'query' }
+        ).then(result => {
+            return {
+                id,
+                name,
+                number
+            }
+        })
 }
 
 const addNewPerson = (name, number) => {
